@@ -1,0 +1,44 @@
+# CMake / build output
+build/
+build-*/
+out/
+install/
+cmake-build-*/
+
+# Stray native artifacts (any tree)
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.so.*
+*.dylib
+*.dll
+*.exe
+*.wasm
+*.wat
+*.bc
+*.gcno
+*.gcda
+*.gcov
+
+# Local environment / secrets
+.env
+.env.*
+!.env.example
+
+# Editor / IDE
+.vscode/
+!.vscode/settings.json
+!.vscode/launch.json
+!.vscode/tasks.json
+!.vscode/extensions.json
+.idea/
+*.code-workspace
+.cache/
+compile_commands.json
+.clangd/
+
+# OS noise
+.DS_Store
+Thumbs.db

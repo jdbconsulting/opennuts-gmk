@@ -1,0 +1,29 @@
+// OpenNuts MCAD example.
+// A simple machined widget: bracket + counter-sunk hole + dome.
+
+unit mm;
+tolerance 0.001;
+
+body bracket_base {
+    box(width: 50, depth: 30, height: 10);
+}
+
+body dome {
+    sphere(radius: 5) at (25, 15, 10);
+}
+
+body shaft {
+    cylinder(radius: 2, height: 12) at (10, 10, -1) axis (0, 0, 1);
+}
+
+body cone_chamfer {
+    cone(radius_base: 3, radius_top: 0, height: 4) at (40, 20, 6);
+}
+
+body ring {
+    torus(major_radius: 7, minor_radius: 1) at (10, 22, 10) axis (0, 0, 1);
+}
+
+body cube {
+    box(width: 20, depth: 20, height: 20);
+}
