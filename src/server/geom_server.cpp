@@ -400,11 +400,46 @@ json::Value Server::handle(const std::string& m, const json::Value* params,
         for (auto t : mesh.flat_triangles) {
             triangles.push_back(json::Value{static_cast<std::int64_t>(t)});
         }
+
+        // Per-face metadata. ``flatten()`` concatenates each face's
+        // vertices and triangles contiguously in the flat buffers, so a
+        // face is fully described by (vertex_start, vertex_count,
+        // triangle_start, triangle_count). The client uses these to
+        // implement face-level picking and selection highlighting
+        // without re-uploading geometry; ``face_id`` is the brep face
+        // handle's pool index, stable for the lifetime of the body.
+        json::Array faces;
+        faces.reserve(mesh.faces.size());
+        std::uint32_t v_cursor = 0;
+        std::uint32_t t_cursor = 0;
+        for (std::size_t i = 0; i < mesh.faces.size(); ++i) {
+            const auto& fm = mesh.faces[i];
+            const std::uint32_t vc = static_cast<std::uint32_t>(fm.positions_m.size());
+            const std::uint32_t tc = static_cast<std::uint32_t>(fm.triangles.size());
+            json::Object f;
+            f.emplace_back("face_index",
+                json::Value{static_cast<std::int64_t>(i)});
+            f.emplace_back("face_id",
+                json::Value{static_cast<std::int64_t>(fm.face.index)});
+            f.emplace_back("vertex_start",
+                json::Value{static_cast<std::int64_t>(v_cursor)});
+            f.emplace_back("vertex_count",
+                json::Value{static_cast<std::int64_t>(vc)});
+            f.emplace_back("triangle_start",
+                json::Value{static_cast<std::int64_t>(t_cursor)});
+            f.emplace_back("triangle_count",
+                json::Value{static_cast<std::int64_t>(tc)});
+            faces.push_back(json::Value{std::move(f)});
+            v_cursor += vc;
+            t_cursor += tc;
+        }
+
         json::Object o;
         o.emplace_back("positions", json::Value{std::move(positions)});
         o.emplace_back("normals",   json::Value{std::move(normals)});
         o.emplace_back("triangles", json::Value{std::move(triangles)});
         o.emplace_back("vertex_count", json::Value{static_cast<std::int64_t>(mesh.flat_positions_m.size())});
+        o.emplace_back("faces",     json::Value{std::move(faces)});
         return json::Value{std::move(o)};
     }
 

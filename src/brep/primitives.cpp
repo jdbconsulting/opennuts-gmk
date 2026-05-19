@@ -70,29 +70,32 @@ Status make_box(Body& body, Vec3i c, length_t hx, length_t hy, length_t hz) {
     //   3 +Y        (0, +1, 0)         2,3,7,6    (+y face)
     //   4 -Z        (0, 0, -1)         0,1,3,2    (-z face)
     //   5 +Z        (0, 0, +1)         4,6,7,5    (+z face)
-    struct FaceSpec {
-        Vec3d centre_offset;
-        Vec3d xaxis, yaxis;
-        std::array<int, 4> verts;  // ccw from outside
-    };
     const double dhx = length_to_m(hx);
     const double dhy = length_to_m(hy);
     const double dhz = length_to_m(hz);
     const Vec3d Cm   = to_vec3d_m(c);
 
+    // PlaneSurface normal is xaxis × yaxis, which for every face below
+    // points inward; Reversed flips normals and winding for outward culling.
+    struct FaceSpec {
+        Vec3d centre_offset;
+        Vec3d xaxis, yaxis;
+        std::array<int, 4> verts;  // ccw from outside
+        FaceSense sense;
+    };
     const std::array<FaceSpec, 6> FACES{{
         // -X face: outward normal -X. local xaxis = +Y, yaxis = +Z.
-        {Vec3d{-dhx, 0, 0},  Vec3d{0,1,0}, Vec3d{0,0,1}, {0,2,6,4}},
+        {Vec3d{-dhx, 0, 0},  Vec3d{0,1,0}, Vec3d{0,0,1}, {0,2,6,4}, FaceSense::Reversed},
         // +X face: outward +X. local xaxis = +Z, yaxis = +Y.
-        {Vec3d{ dhx, 0, 0},  Vec3d{0,0,1}, Vec3d{0,1,0}, {1,5,7,3}},
+        {Vec3d{ dhx, 0, 0},  Vec3d{0,0,1}, Vec3d{0,1,0}, {1,5,7,3}, FaceSense::Reversed},
         // -Y face: outward -Y. local xaxis = +Z, yaxis = +X.
-        {Vec3d{0, -dhy, 0},  Vec3d{0,0,1}, Vec3d{1,0,0}, {0,4,5,1}},
+        {Vec3d{0, -dhy, 0},  Vec3d{0,0,1}, Vec3d{1,0,0}, {0,4,5,1}, FaceSense::Reversed},
         // +Y face: outward +Y. local xaxis = +X, yaxis = +Z.
-        {Vec3d{0,  dhy, 0},  Vec3d{1,0,0}, Vec3d{0,0,1}, {2,3,7,6}},
+        {Vec3d{0,  dhy, 0},  Vec3d{1,0,0}, Vec3d{0,0,1}, {2,3,7,6}, FaceSense::Reversed},
         // -Z face: outward -Z. local xaxis = +X, yaxis = +Y.
-        {Vec3d{0, 0, -dhz},  Vec3d{1,0,0}, Vec3d{0,1,0}, {0,1,3,2}},
+        {Vec3d{0, 0, -dhz},  Vec3d{1,0,0}, Vec3d{0,1,0}, {0,1,3,2}, FaceSense::Reversed},
         // +Z face: outward +Z. local xaxis = +Y, yaxis = +X.
-        {Vec3d{0, 0,  dhz},  Vec3d{0,1,0}, Vec3d{1,0,0}, {4,6,7,5}},
+        {Vec3d{0, 0,  dhz},  Vec3d{0,1,0}, Vec3d{1,0,0}, {4,6,7,5}, FaceSense::Reversed},
     }};
 
     ShellId shell = body.new_shell(ShellKind::Closed);
@@ -121,7 +124,7 @@ Status make_box(Body& body, Vec3i c, length_t hx, length_t hy, length_t hz) {
                             -u_extent, u_extent, -v_extent, v_extent);
         if (s != Status::Ok) return s;
         SurfaceId sid = body.add_surface(std::move(pl));
-        FaceId    f   = body.new_face(sid, FaceSense::SameAsSurface);
+        FaceId    f   = body.new_face(sid, fs.sense);
         LoopId    l   = body.new_loop(f, LoopKind::Outer);
         body.add_outer_loop_to_face(f, l);
         body.add_face_to_shell(shell, f);
